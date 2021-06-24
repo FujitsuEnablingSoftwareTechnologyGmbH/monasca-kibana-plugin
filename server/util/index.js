@@ -45,7 +45,21 @@ function isESRequest(request) {
 }
 
 function isSavedObjectsRequest(request) {
-  return /\/api.*\/saved_objects\/_/.test(getRequestPath(request));
+  var reqPath = getRequestPath(request);
+  var isSavedObjReq = /\/api.*\/saved_objects\/_/.test(reqPath);
+  var reqOp;
+  var strArr;
+  var strArrOp;
+
+  if (isSavedObjReq)  {
+     strArr = reqPath.split('/');
+     strArrOp = strArr[strArr.length-1].split('?');
+     reqOp = strArrOp[0];
+     // check if operation shall be handled in plugin
+     if ((reqOp != "_find") && (reqOp != "_bulk_get"))
+        isSavedObjReq = false;
+  }
+  return isSavedObjReq;
 }
 
 function isRoutedRequest(request) {
