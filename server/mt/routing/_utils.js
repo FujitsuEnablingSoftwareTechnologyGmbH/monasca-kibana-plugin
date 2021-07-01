@@ -79,11 +79,39 @@ function isAllowedSavedObject(element, patterns) {
     case 'config':
       return true;
     case 'visualization':
+      return true;
     case 'search':
       references = element.references.filter(element => patterns.includes(element.id));
       return references.length > 0;
     default:
       return false;
+  }
+}
+
+function isAllowedConig(element) {
+  if (element.type === 'config')
+    return true;
+}
+
+function isAllowedIndexAndSearch(element, patterns) {
+  let references = [];
+  switch (element.type) {
+    case 'index-pattern':
+      return patterns.includes(element.id);
+    case 'search':
+      references = element.references.filter(element => patterns.includes(element.id));
+      return references.length > 0;
+  }
+}
+
+
+function isAllowedVisualization(element, indexAndSearch) {
+  let allowed_index_and_search_id = [];
+  let references = [];
+  indexAndSearch.forEach(element => allowed_index_and_search_id.push(element.id))
+  if (element.type === 'visualization') {
+    references = element.references.filter(element => allowed_index_and_search_id.includes(element.id));
+    return references.length > 0;
   }
 }
 
@@ -120,9 +148,12 @@ async function filterDashboards(object, patterns) {
 // don't contain the references to index-pattern
 // Dashboard is deemed allowed only if it contains allowed references only.
 export async function filterResponse(data, patterns) {
-  let savedObjects = data.saved_objects.filter(el => isAllowedSavedObject(el, patterns));
+  let savedConfig = data.saved_objects.filter(el => isAllowedConig(el));
+  let savedIndexAndSearch = data.saved_objects.filter(el => isAllowedIndexAndSearch(el, patterns));
+  let savedVisualization = data.saved_objects.filter(el => isAllowedVisualization(el, savedIndexAndSearch))
+  //let savedObjects = data.saved_objects.filter(el => isAllowedSavedObject(el, patterns));
   let savedDashboards = await filterDashboards(data.saved_objects, patterns);
 
-  data.saved_objects = savedObjects.concat(savedDashboards);
+  data.saved_objects = savedConfig.concat(savedIndexAndSearch, savedVisualization, savedDashboards);
   return data;
 }
